@@ -23,6 +23,11 @@ async function run() {
             const user = await usersCollection.findOne({ email: req.body.email });
             !user && await usersCollection.insertOne(req.body);
         })
+
+        app.get('/user/:email', async (req, res) => {
+            const user = await usersCollection.findOne({ email: req.params.email });
+            res.send({ role: user.role })
+        })
     }
     catch (err) {
         console.log(err)
