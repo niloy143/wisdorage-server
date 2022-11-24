@@ -7,6 +7,23 @@ const app = express();
 const port = process.env.PORT || 1234;
 const jwtSecret = process.env.JWT_SECRET;
 
+const verifyUser = (req, res, next) => {
+    const authToken = req.headers?.authorization;
+    if (!authToken) {
+        return res.status(401).send({ access: 'denied' });
+    }
+    const token = authToken.split(' ')[1];
+    jwt.verify(token, jwtSecret, (err, decoded) => {
+        if (err) {
+            return res.status(401).send({ access: 'denied' });
+        }
+        else if (decoded.email !== req.query.email) {
+            return res.status(403).send({ access: 'forbidden' });
+        }
+        next();
+    })
+}
+
 app.use(cors());
 app.use(express.json());
 
@@ -25,15 +42,46 @@ const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology:
 async function run() {
     try {
         const usersCollection = client.db('wisdorage').collection('users');
+        const verifyBuyer = async (req, res, next) => {
+            const user = await usersCollection.findOne({ email: req.query.email });
+            if (user.role !== 'buyer') {
+                return res.status(403).send({ access: 'forbidden' });
+            }
+            next();
+        }
+        const verifySeller = async (req, res, next) => {
+            const user = await usersCollection.findOne({ email: req.query.email });
+            if (user.role !== 'seller') {
+                return res.status(403).send({ access: 'forbidden' });
+            }
+            next();
+        }
+        const verifyAdmin = async (req, res, next) => {
+            const user = await usersCollection.findOne({ email: req.query.email });
+            if (user.role !== 'admin') {
+                return res.status(403).send({ access: 'forbidden' });
+            }
+            next();
+        }
 
         app.post('/users', async (req, res) => {
             const user = await usersCollection.findOne({ email: req.body.email });
             !user && await usersCollection.insertOne(req.body);
         })
 
-        app.get('/user/:email', async (req, res) => {
-            const user = await usersCollection.findOne({ email: req.params.email });
-            res.send({ role: user.role })
+        app.get('/user', verifyUser, async (req, res) => {
+            const user = await usersCollection.findOne({ email: req.query.email });
+            res.send({ role: user.role });
+        })
+
+        app.get('/sellers', verifyUser, verifyAdmin, async (req, res) => {
+            const sellers = await usersCollection.find({ role: 'seller' }).toArray();
+            res.send(sellers);
+        })
+
+        app.get('/buyers', verifyUser, verifyAdmin, async (req, res) => {
+            const buyers = await usersCollection.find({ role: 'buyer' }).toArray();
+            res.send(buyers);
         })
     }
     catch (err) {
