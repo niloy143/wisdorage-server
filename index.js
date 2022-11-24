@@ -18,8 +18,10 @@ const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology:
 async function run() {
     try {
         const usersCollection = client.db('wisdorage').collection('users');
-        app.get('/users', async (req, res) => {
-            
+
+        app.post('/users', async (req, res) => {
+            const user = await usersCollection.findOne({ email: req.body.email });
+            !user && await usersCollection.insertOne(req.body);
         })
     }
     catch (err) {
