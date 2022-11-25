@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
@@ -44,6 +44,7 @@ async function run() {
         const usersCollection = client.db('wisdorage').collection('users');
         const categoriesCollection = client.db('wisdorage').collection('categories');
         const booksCollection = client.db('wisdorage').collection('books');
+        const ordersCollection = client.db('wisdorage').collection('orders');
 
         const verifyBuyer = async (req, res, next) => {
             const user = await usersCollection.findOne({ email: req.query.email });
@@ -95,6 +96,19 @@ async function run() {
         app.get('/books/:category', verifyUser, async (req, res) => {
             const books = await booksCollection.find({ categoryId: req.params.category }).toArray();
             res.send(books);
+        })
+
+        app.post('/order', verifyUser, async (req, res) => {
+            const orderResult = await ordersCollection.insertOne(req.body);
+            await booksCollection.updateOne({ _id: ObjectId(req.body.bookId) }, { $set: { orderedBy: req.body.buyerEmail } }, { upsert: true });
+            res.send(orderResult);
+        })
+
+        app.delete('/order/:bookId', verifyUser, async (req, res) => {
+            await booksCollection.updateOne({ _id: ObjectId(req.params.bookId) }, { $unset: { orderedBy: "" } });
+            const result = await ordersCollection.deleteOne({ bookId: req.params.bookId });
+            console.log(result)
+            res.send(result);
         })
     }
     catch (err) {
