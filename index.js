@@ -107,7 +107,6 @@ async function run() {
         app.delete('/order/:bookId', verifyUser, async (req, res) => {
             await booksCollection.updateOne({ _id: ObjectId(req.params.bookId) }, { $unset: { orderedBy: "" } });
             const result = await ordersCollection.deleteOne({ bookId: req.params.bookId });
-            console.log(result)
             res.send(result);
         })
     }
