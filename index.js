@@ -42,6 +42,9 @@ const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology:
 async function run() {
     try {
         const usersCollection = client.db('wisdorage').collection('users');
+        const categoriesCollection = client.db('wisdorage').collection('categories');
+        const booksCollection = client.db('wisdorage').collection('books');
+
         const verifyBuyer = async (req, res, next) => {
             const user = await usersCollection.findOne({ email: req.query.email });
             if (user.role !== 'buyer') {
@@ -82,6 +85,16 @@ async function run() {
         app.get('/buyers', verifyUser, verifyAdmin, async (req, res) => {
             const buyers = await usersCollection.find({ role: 'buyer' }).toArray();
             res.send(buyers);
+        })
+
+        app.get('/categories', async (req, res) => {
+            const categories = await categoriesCollection.find({}).toArray();
+            res.send(categories);
+        })
+
+        app.get('/books/:category', verifyUser, async (req, res) => {
+            const books = await booksCollection.find({ categoryId: req.params.category }).toArray();
+            res.send(books);
         })
     }
     catch (err) {
