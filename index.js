@@ -103,6 +103,11 @@ async function run() {
             res.send(books);
         })
 
+        app.post('/book', async (req, res) => {
+            const result = await booksCollection.insertOne(req.body);
+            res.send(result);
+        })
+
         app.get('/orders', verifyUser, async (req, res) => {
             const orders = await ordersCollection.find({ buyerEmail: req.query.email }).sort({ orderDate: -1 }).toArray();
             res.send(orders);
