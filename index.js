@@ -98,6 +98,11 @@ async function run() {
             res.send(books);
         })
 
+        app.get('/ad/books', async (req, res) => {
+            const books = await booksCollection.find({ advertised: true }).toArray();
+            res.send(books);
+        })
+
         app.post('/order', verifyUser, async (req, res) => {
             const orderResult = await ordersCollection.insertOne(req.body);
             await booksCollection.updateOne({ _id: ObjectId(req.body.bookId) }, { $set: { orderedBy: req.body.buyerEmail } }, { upsert: true });
