@@ -68,14 +68,14 @@ async function run() {
             next();
         }
 
-        app.post('/users', async (req, res) => {
+        app.post('/user', async (req, res) => {
             const user = await usersCollection.findOne({ email: req.body.email });
             !user && await usersCollection.insertOne(req.body);
         })
 
         app.get('/user', verifyUser, async (req, res) => {
             const user = await usersCollection.findOne({ email: req.query.email });
-            res.send({ role: user.role });
+            res.send({ role: user?.role });
         })
 
         app.get('/sellers', verifyUser, verifyAdmin, async (req, res) => {
