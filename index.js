@@ -68,6 +68,11 @@ async function run() {
             next();
         }
 
+        app.get('/users', verifyUser, verifyAdmin, async (req, res) => {
+            const users = await usersCollection.find({ role: req.query.role }).toArray();
+            res.send(users);
+        })
+
         app.post('/user', async (req, res) => {
             const user = await usersCollection.findOne({ email: req.body.email });
             !user && await usersCollection.insertOne(req.body);
@@ -78,14 +83,22 @@ async function run() {
             res.send({ role: user?.role });
         })
 
-        app.get('/sellers', verifyUser, verifyAdmin, async (req, res) => {
-            const sellers = await usersCollection.find({ role: 'seller' }).toArray();
-            res.send(sellers);
+        app.put('/user/verify/:user', verifyUser, verifyAdmin, async (req, res) => {
+            const bookResult = await booksCollection.updateMany({ sellerEmail: req.params.user }, { $set: { verifiedSeller: true } }, { upsert: true });
+            const userResult = await usersCollection.updateOne({ email: req.params.user }, { $set: { verified: true } }, { upsert: true });
+            if (bookResult.acknowledged && userResult.modifiedCount === 1) {
+                return res.send({ verified: true })
+            }
+            res.send({ verified: false })
         })
 
-        app.get('/buyers', verifyUser, verifyAdmin, async (req, res) => {
-            const buyers = await usersCollection.find({ role: 'buyer' }).toArray();
-            res.send(buyers);
+        app.put('/user/cancel-verified/:user', verifyUser, verifyAdmin, async (req, res) => {
+            const bookResult = await booksCollection.updateMany({ sellerEmail: req.params.user }, { $unset: { verifiedSeller: true } }, { upsert: true });
+            const userResult = await usersCollection.updateOne({ email: req.params.user }, { $unset: { verified: true } }, { upsert: true });
+            if (bookResult.acknowledged && userResult.modifiedCount === 1) {
+                return res.send({ cancelled: true })
+            }
+            res.send({ cancelled: false })
         })
 
         app.get('/categories', async (req, res) => {
