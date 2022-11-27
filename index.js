@@ -111,9 +111,19 @@ async function run() {
             res.send(books);
         })
 
+        app.get('/my-books', verifyUser, verifySeller, async (req, res) => {
+            const books = await booksCollection.find({ sellerEmail: req.query.email }).sort({postedIn: -1}).toArray();
+            res.send(books);
+        })
+
         app.get('/ad/books', async (req, res) => {
             const books = await booksCollection.find({ advertised: true }).toArray();
             res.send(books);
+        })
+
+        app.put('/ad/book/:id', verifyUser, verifySeller, async (req, res) => {
+            const result = await booksCollection.updateOne({ _id: ObjectId(req.params.id) }, { $set: { advertised: true } });
+            res.send(result);
         })
 
         app.post('/book', async (req, res) => {
