@@ -76,11 +76,22 @@ async function run() {
         app.post('/user', async (req, res) => {
             const user = await usersCollection.findOne({ email: req.body.email });
             !user && await usersCollection.insertOne(req.body);
+            res.send({ message: 'User Added' });
         })
 
         app.get('/user', verifyUser, async (req, res) => {
             const user = await usersCollection.findOne({ email: req.query.email });
             res.send({ role: user?.role });
+        })
+
+        app.delete('/user/:email', verifyUser, verifyAdmin, async (req, res) => {
+            const email = req.params.email;
+            const userResult = await usersCollection.updateOne({ email }, { $set: { deleted: true } }, { upsert: true });
+            const orderedByResult = await booksCollection.updateMany({ orderedBy: email }, { $unset: { orderedBy: "" } });
+            const booksResult = await booksCollection.deleteMany({ sellerEmail: email });
+            const ordersResult = await ordersCollection.deleteMany({ buyerEmail: email });
+
+            res.send({ done: userResult.acknowledged && orderedByResult.acknowledged && booksResult.acknowledged && ordersResult.acknowledged });
         })
 
         app.get('/is-deleted/:user', async (req, res) => {
