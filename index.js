@@ -142,6 +142,11 @@ async function run() {
             res.send(result);
         })
 
+        app.put('/report/book/:id', verifyUser, async (req, res) => {
+            const result = await booksCollection.updateOne({ _id: ObjectId(req.params.id) }, { $set: { reportedBy: req.body } }, { upsert: true });
+            res.send(result);
+        })
+
         app.post('/book', verifyUser, verifySeller, async (req, res) => {
             const result = await booksCollection.insertOne(req.body);
             res.send(result);
