@@ -83,6 +83,11 @@ async function run() {
             res.send({ role: user?.role });
         })
 
+        app.get('/is-deleted/:user', async (req, res) => {
+            const user = await usersCollection.findOne({ email: req.params.user });
+            res.send({ isDeleted: !!(user?.deleted) })
+        })
+
         app.put('/user/verify/:user', verifyUser, verifyAdmin, async (req, res) => {
             const bookResult = await booksCollection.updateMany({ sellerEmail: req.params.user }, { $set: { verifiedSeller: true } }, { upsert: true });
             const userResult = await usersCollection.updateOne({ email: req.params.user }, { $set: { verified: true } }, { upsert: true });
