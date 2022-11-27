@@ -142,7 +142,7 @@ async function run() {
             res.send(result);
         })
 
-        app.post('/book', async (req, res) => {
+        app.post('/book', verifyUser, verifySeller, async (req, res) => {
             const result = await booksCollection.insertOne(req.body);
             res.send(result);
         })
