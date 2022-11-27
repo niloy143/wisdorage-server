@@ -147,6 +147,16 @@ async function run() {
             res.send(result);
         })
 
+        app.get('/reported-books', verifyUser, verifyAdmin, async (req, res) => {
+            const books = await booksCollection.find({ $nor: [{ reportedBy: undefined }, { reportedBy: { $size: 0 } }] }).toArray();
+            res.send(books);
+        })
+
+        app.put('/remove-report/:bookId', verifyUser, verifyAdmin, async (req, res) => {
+            const result = await booksCollection.updateOne({ _id: ObjectId(req.params.bookId) }, { $unset: { reportedBy: [] } })
+            res.send(result);
+        })
+
         app.post('/book', verifyUser, verifySeller, async (req, res) => {
             const result = await booksCollection.insertOne(req.body);
             res.send(result);
