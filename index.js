@@ -112,7 +112,7 @@ async function run() {
         })
 
         app.get('/my-books', verifyUser, verifySeller, async (req, res) => {
-            const books = await booksCollection.find({ sellerEmail: req.query.email }).sort({postedIn: -1}).toArray();
+            const books = await booksCollection.find({ sellerEmail: req.query.email }).sort({ postedIn: -1 }).toArray();
             res.send(books);
         })
 
@@ -129,6 +129,21 @@ async function run() {
         app.post('/book', async (req, res) => {
             const result = await booksCollection.insertOne(req.body);
             res.send(result);
+        })
+
+        app.put('/edit/book/:id', verifyUser, verifySeller, async (req, res) => {
+            const { _id, resalePrice, available, location } = req.body;
+            const result = await booksCollection.updateOne(
+                { _id: ObjectId(_id) },
+                {
+                    $set: {
+                        resalePrice,
+                        available,
+                        location
+                    }
+                }
+            )
+            res.send(result)
         })
 
         app.get('/orders', verifyUser, async (req, res) => {
