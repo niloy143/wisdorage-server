@@ -6,6 +6,11 @@ const jwt = require('jsonwebtoken');
 const app = express();
 const port = process.env.PORT || 1234;
 const jwtSecret = process.env.JWT_SECRET;
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
+
+app.use(cors());
+app.use(express.json());
+app.use(express.static("public"));
 
 const verifyUser = (req, res, next) => {
     const authToken = req.headers?.authorization;
@@ -24,9 +29,6 @@ const verifyUser = (req, res, next) => {
     })
 }
 
-app.use(cors());
-app.use(express.json());
-
 app.get('/', (req, res) => {
     res.send({ status: 'running' })
 })
@@ -35,6 +37,23 @@ app.get('/jwt', (req, res) => {
     const token = jwt.sign({ email: req.query.email }, jwtSecret, { expiresIn: '7d' });
     res.send({ token });
 })
+
+app.post("/create-payment-intent", verifyUser, async (req, res) => {
+    try {
+        const paymentIntent = await stripe.paymentIntents.create({
+            amount: req.body.price * 100,
+            "payment_method_types": ['card'],
+            currency: "bdt"
+        });
+
+        res.send({
+            clientSecret: paymentIntent.client_secret,
+        });
+    }
+    catch (err) {
+        res.send({ error: err })
+    }
+});
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.sq5icdb.mongodb.net/?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
@@ -191,6 +210,11 @@ async function run() {
         app.delete('/order/:bookId', verifyUser, async (req, res) => {
             await booksCollection.updateOne({ _id: ObjectId(req.params.bookId) }, { $unset: { orderedBy: "" } });
             const result = await ordersCollection.deleteOne({ bookId: req.params.bookId });
+            res.send(result);
+        })
+
+        app.put('/order/:bookId', verifyUser, async (req, res) => {
+            const result = await ordersCollection.updateOne({ _id: ObjectId(req.params.bookId) }, { $set: { paid: req.body } }, { upsert: true });
             res.send(result);
         })
     }
