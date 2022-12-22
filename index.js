@@ -87,8 +87,8 @@ async function run() {
             next();
         }
 
-        app.get('/users', verifyUser, verifyAdmin, async (req, res) => {
-            const users = await usersCollection.find({ role: req.query.role }).toArray();
+        app.get('/users', async (req, res) => {
+            const users = await usersCollection.find({ $and: [{ role: req.query.role }, { deleted: undefined }] }).toArray();
             res.send(users);
         })
 
